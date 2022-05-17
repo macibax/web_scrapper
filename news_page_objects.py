@@ -30,7 +30,6 @@ class NewsSite:
         self._html = bs4.BeautifulSoup(response.text, 'html.parser')
 
     def _get_well_formed_link(self, link):
-        # print("_get_well_formed_link::: ",link)
         if is_well_formed_url.findall(link):
             return link
         elif is_root_path.findall(link):
@@ -56,12 +55,16 @@ class ArticlePage(NewsSite):
         super().__init__(news_site_uid, url)
 
     @property
-    def article_title(self):
+    def title(self):
         res = self._select(self._queries['article_title'])
         return res[0].text if len(res) else ''
 
     @property
-    def article_body(self):
+    def body(self):
         res = self._select(self._queries['article_body'])
-        return res[0] if len(res) else ''
+        return res[0].text if len(res) else ''
+
+    @property
+    def url(self):
+        return self._url
     

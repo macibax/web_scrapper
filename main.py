@@ -21,19 +21,16 @@ def _news_scraper(news_site_uid):
 
     articles = []
     for link in page.article_links:
-        # print("link::: ",link)
         article = get_article(news_site_uid, link)
         if article:
             articles.append(article)
-            # print(article.article_title)
     save_csv_dataset(news_site_uid, articles)
 
 
 def get_article(news_site_uid, link):
-    # logging.info(f'Accessing "{link}"')
     try:
         article = ArticlePage(news_site_uid, link)
-        if not article.article_body:
+        if not article.body:
             return None
         return article
     except:
@@ -41,24 +38,23 @@ def get_article(news_site_uid, link):
         return None
     
 def save_csv_dataset(name, data):
-    now = datetime.datetime.now().strftime('%Y-%m-%d')
-    file_name = f"{name}_{now}.csv"
-    logging.info(f'Saving info in "{file_name}"')
+    if len(data):
+        now = datetime.datetime.now().strftime('%Y-%m-%d')
+        file_name = f"{name}_{now}.csv"
+        logging.info(f'Saving info in "{file_name}"')
 
-    # obtener propiedades no privadas de objeto data
-    # s usaran como nombres de columnas y para obtener valores de las mismas
-    csv_headers = list( filter( lambda property: not property.startswith('_'), dir(data[0]) ) )
-    print("csv_headers::: ",csv_headers)
+        # obtener propiedades no privadas de objeto data
+        # s usaran como nombres de columnas y para obtener valores de las mismas
+        csv_headers = list( filter( lambda property: not property.startswith('_'), dir(data[0]) ) )
 
-    with open(file_name, mode="w+", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(csv_headers)
+        with open(file_name, mode="w+", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(csv_headers)
 
-        for e in data:
-            row_value = [ str(getattr(e, prop)) for prop in csv_headers ]
-            print("row_value::: ",row_value)
-            row = row_value
-            writer.writerow(row)
+            for e in data:
+                row_value = [ str(getattr(e, prop)) for prop in csv_headers ]
+                row = row_value
+                writer.writerow(row)
 
 if __name__ == "__main__":
     logging.info('START')
