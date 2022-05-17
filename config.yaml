@@ -1,0 +1,19 @@
+news_sites:
+  eluniversal:
+    url: http://www.eluniversal.com
+    queries:
+      homepage_article_links: '.field-content a'
+      article_body: ''
+      article_title: ''
+  elpais:
+    url: http://www.elpais.com
+    queries:
+      homepage_article_links: ''
+      article_body: ''
+      article_title: ''
+  elimparcial:
+    url: http://www.elimparcial.com
+    queries:
+      homepage_article_links: '.news__media a'
+      article_body: '.newsfull__body'
+      article_title: '.newsfull__title'
