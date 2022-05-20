@@ -5,10 +5,23 @@ import argparse
 from urllib.parse import urlparse
 import hashlib # para generar hashes (uids)
 
+# tokenizar
+import nltk
+from nltk.corpus import stopwords
+
+# nltk.download('punkt') # solo ejecutar 1 vez, despues comentar
+# nltk.download('stopwords') # solo ejecutar 1 vez, despues comentar
+
+# seleccionar el idioma para el analisis
+stop_words = set(stopwords.words('spanish'))
+
 # configuracin de logger
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# para guardar en csv
+# from common import save_csv_dataset
 
 
 def main(ds_file):
@@ -32,27 +45,86 @@ def main(ds_file):
     # generar uids para las rows
     ds = _generate_uids_for_rows(ds)
 
-    ds = _remove_new_lines_from_body(ds)
-    ds = _remove_returns_from_body(ds)
+    # eliminar \r y \n de titulo y body
+    ds = _remove_new_lines_from_column(ds, 'title')
+    ds = _remove_returns_from_column(ds, 'title')
+    ds = _remove_new_lines_from_column(ds, 'body')
+    ds = _remove_returns_from_column(ds, 'body')
+
+    # eliminar estacios en blanco al inicio y final
+    ds = _strip_column(ds, 'title')
+    ds = _strip_column(ds, 'body')
+
+    # ENRIQUEZER DATOS
+    # agregar columnas que muestran la cantidad de palabras
+    # relevantes para title y body
+    ds = _tokenize_column(ds, 'title')
+    ds = _tokenize_column(ds, 'body')
+
+    # remover duplicados
+    ds = _remove_duplicate_entries(ds, 'title')
+
+    # eliminar rows cond atos vacios
+    ds = _drop_rows_with_missing_values(ds)
 
     return ds
 
-def _remove_new_lines_from_body(ds):
-    logger.info("removing \n from body")
+def _drop_rows_with_missing_values(ds):
+    logger.info("removing null values")
+    return ds.dropna()
+
+def _remove_duplicate_entries(ds, column):
+    logger.info("removing dupplicate entries")
+    return ds.drop_duplicates(subset=column, keep='first')
+
+def _tokenize_column(ds, column):
+    logger.info(f"adding tokenized column {column}")
+    tokenized = (
+        # nltk.word_tokenize(row[column])
+        # funcione que tokeniza el valir de row[column]
+        # https://www.nltk.org/api/nltk.tokenize.html
+        # Tokenizers divide strings into lists of substrings. For example, tokenizers can be used to find the words and punctuation in a string
+        ds.apply(lambda row: nltk.word_tokenize(row[column]), axis=1)
+        # obtiene lista de tokens alfanumericos
+        .apply(lambda tokens: list(filter(lambda token: token.isalpha(), tokens)))
+        # convertir todo a minusculas para que se pueda comparar con stopwords
+        .apply(lambda tokens: map(lambda token: token.lower(), tokens))
+        # eliminar las stopwords de la lista
+        .apply(lambda word_list: list(filter(lambda word: word not in stop_words, word_list)))
+        # obtener cantidad de palabras validas
+        .apply(lambda valid_word_list: len(valid_word_list))
+    )
+
+    # agregar columna
+    ds[f"token_{column}"] = tokenized
+    return ds
+
+def _strip_column(ds, column):
+    logger.info("removing white spaces at the beginning and end from column")
+    # eliminar espacios en blanco al inicio y final
+    stripped = (
+        ds.apply(lambda row: row[column].strip(), axis=1)
+    )
+    ds[column] = stripped
+    return ds
+
+
+def _remove_new_lines_from_column(ds, column):
+    logger.info("removing \n from column")
     cleaned_body = (
-        ds.apply(lambda row: list(row['body']), axis=1)
+        ds.apply(lambda row: list(row[column]), axis=1)
         .apply(lambda letters: "".join(list(map(lambda letter: letter.replace('\n',''), letters))).strip())
     )
-    ds['body'] = cleaned_body
+    ds[column] = cleaned_body
     return ds
 
-def _remove_returns_from_body(ds):
-    logger.info("removing \r from body")
+def _remove_returns_from_column(ds, column):
+    logger.info("removing \r from column")
     cleaned_body = (
-        ds.apply(lambda row: list(row['body']), axis=1)
+        ds.apply(lambda row: list(row[column]), axis=1)
         .apply(lambda letters: "".join(list(map(lambda letter: letter.replace('\r',''), letters))).strip())
     )
-    ds['body'] = cleaned_body
+    ds[column] = cleaned_body
     return ds
 
 def _read_data(ds_file):
@@ -105,6 +177,10 @@ def _generate_uids_for_rows(ds):
     # set_index remplaza los indices con los de la columna indicada
     return ds.set_index('uid')
 
+def save_csv(name, ds):
+    logger.info("Saving csv...")
+    ds.to_csv(f"clean_{name}", encoding = 'utf-8-sig')
+
 if __name__ == "__main__":
     logger.info("starting process...")
     parser = argparse.ArgumentParser()
@@ -118,4 +194,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     ds = main(args.ds_file)
     print(ds)
+
+    # guardar en csv
+    # save_csv_dataset(f"clean_{args.ds_file}", ds)
+    save_csv(args.ds_file, ds)
     # print(ds.isna())

@@ -57,7 +57,7 @@ class ArticlePage(NewsSite):
     @property
     def title(self):
         res = self._select(self._queries['article_title'])
-        return res[0].text if len(res) else ''
+        return res[0].text.replace(';','') if len(res) else ''
 
     @property
     def body(self):

@@ -44,7 +44,7 @@ def save_csv_dataset(name, data):
         logging.info(f'Saving info in "{file_name}"')
 
         # obtener propiedades no privadas de objeto data
-        # s usaran como nombres de columnas y para obtener valores de las mismas
+        # se usaran como nombres de columnas y para obtener valores de las mismas
         csv_headers = list( filter( lambda property: not property.startswith('_'), dir(data[0]) ) )
 
         with open(file_name, mode="w+", encoding="utf-8") as f:
@@ -55,6 +55,7 @@ def save_csv_dataset(name, data):
                 row_value = [ str(getattr(e, prop)) for prop in csv_headers ]
                 row = row_value
                 writer.writerow(row)
+
 
 if __name__ == "__main__":
     logging.info('START')
